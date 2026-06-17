@@ -103,10 +103,33 @@ function PurchaseModal({ template, onClose }: { template: Template; onClose: () 
 function TemplateCard({ template, onPurchase, index }: { template: Template; onPurchase: (t: Template) => void; index: number }) {
   const [previewStatus, setPreviewStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
   const [hovered, setHovered] = useState(false)
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
 
-  const screenshotUrl = template.preview_url
-    ? `https://api.microlink.io/?url=${encodeURIComponent(template.preview_url)}&screenshot=true&meta=false&embed=screenshot.url&waitFor=2000`
-    : null
+  useEffect(() => {
+    if (!template.preview_url) {
+      setPreviewStatus('failed')
+      return
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+
+    fetch(
+      `https://api.microlink.io/?url=${encodeURIComponent(template.preview_url)}&screenshot=true&meta=false&waitFor=1000`,
+      { signal: controller.signal }
+    )
+      .then(res => res.json())
+      .then(json => {
+        if (cancelled) return
+        const shot = json?.data?.screenshot?.url
+        if (shot) setScreenshotUrl(shot)
+        else setPreviewStatus('failed')
+      })
+      .catch(() => { if (!cancelled) setPreviewStatus('failed') })
+      .finally(() => clearTimeout(timeout))
+
+    return () => { cancelled = true; controller.abort(); clearTimeout(timeout) }
+  }, [template.preview_url])
 
   return (
     <div
@@ -116,7 +139,7 @@ function TemplateCard({ template, onPurchase, index }: { template: Template; onP
     >
       {/* Preview */}
       <div className="h-44 bg-dark-200 relative overflow-hidden border-b border-dark-300">
-        {screenshotUrl ? (
+        {template.preview_url ? (
           <>
             {previewStatus === 'loading' && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -128,9 +151,11 @@ function TemplateCard({ template, onPurchase, index }: { template: Template; onP
                 <div className="font-mono text-xs text-neon/20 tracking-widest uppercase">{template.name}</div>
               </div>
             )}
-            <img src={screenshotUrl} alt={template.name}
-              className={`w-full h-full object-cover object-top transition-opacity duration-500 ${previewStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setPreviewStatus('loaded')} onError={() => setPreviewStatus('failed')} />
+            {screenshotUrl && (
+              <img src={screenshotUrl} alt={template.name}
+                className={`w-full h-full object-cover object-top transition-opacity duration-500 ${previewStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setPreviewStatus('loaded')} onError={() => setPreviewStatus('failed')} />
+            )}
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

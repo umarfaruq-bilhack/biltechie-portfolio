@@ -1,12 +1,44 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useScrollReveal } from '@/hooks/useScrollReveal'
 import { useCardDrop } from '@/hooks/useCardDrop'
 import type { Project } from '@/types'
 
 function ProjectPreview({ url, title, index }: { url: string; title: string; index: number }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
-  const screenshotUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url&waitFor=2000`
+  const [imgSrc, setImgSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000) // 8s hard timeout
+
+    fetch(
+      `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&waitFor=1000`,
+      { signal: controller.signal }
+    )
+      .then(res => res.json())
+      .then(json => {
+        if (cancelled) return
+        const shot = json?.data?.screenshot?.url
+        if (shot) {
+          setImgSrc(shot)
+        } else {
+          setStatus('failed')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStatus('failed')
+      })
+      .finally(() => clearTimeout(timeout))
+
+    return () => {
+      cancelled = true
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [url])
+
   return (
     <>
       {status === 'loading' && (
@@ -25,9 +57,11 @@ function ProjectPreview({ url, title, index }: { url: string; title: string; ind
           </div>
         </div>
       )}
-      <img src={screenshotUrl} alt={`${title} preview`}
-        className={`w-full h-full object-cover object-top transition-opacity duration-500 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
+      {imgSrc && (
+        <img src={imgSrc} alt={`${title} preview`}
+          className={`w-full h-full object-cover object-top transition-opacity duration-500 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
+      )}
     </>
   )
 }
