@@ -11,33 +11,41 @@ function ProjectPreview({ url, title, index }: { url: string; title: string; ind
   useEffect(() => {
     let cancelled = false
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000) // 8s hard timeout
+    const timeout = setTimeout(() => controller.abort(), 10000) // 10s hard timeout
+    const staggerDelay = index * 350 // stagger requests to avoid rate limiting
 
-    fetch(
-      `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&waitFor=1000`,
-      { signal: controller.signal }
-    )
-      .then(res => res.json())
-      .then(json => {
-        if (cancelled) return
-        const shot = json?.data?.screenshot?.url
-        if (shot) {
-          setImgSrc(shot)
-        } else {
-          setStatus('failed')
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('failed')
-      })
-      .finally(() => clearTimeout(timeout))
+    const startFetch = setTimeout(() => {
+      fetch(
+        `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&waitFor=1000`,
+        { signal: controller.signal }
+      )
+        .then(res => res.json())
+        .then(json => {
+          if (cancelled) return
+          const shot = json?.data?.screenshot?.url
+          if (shot) {
+            setImgSrc(shot)
+          } else {
+            console.warn('Microlink returned no screenshot for', url, json)
+            setStatus('failed')
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            console.warn('Microlink fetch failed for', url, err)
+            setStatus('failed')
+          }
+        })
+        .finally(() => clearTimeout(timeout))
+    }, staggerDelay)
 
     return () => {
       cancelled = true
       controller.abort()
       clearTimeout(timeout)
+      clearTimeout(startFetch)
     }
-  }, [url])
+  }, [url, index])
 
   return (
     <>
