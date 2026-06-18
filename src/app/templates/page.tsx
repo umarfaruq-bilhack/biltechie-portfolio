@@ -247,10 +247,18 @@ export default function TemplatesPage() {
   const [purchasing, setPurchasing] = useState<Template | null>(null)
 
   useEffect(() => {
-    fetch('/api/templates').then(r => r.json()).then(data => {
-      setTemplates(Array.isArray(data) ? data : [])
-      setLoading(false)
-    })
+    fetch('/api/templates')
+      .then(r => r.json())
+      .then(data => {
+        setTemplates(Array.isArray(data) ? data : [])
+      })
+      .catch((err) => {
+        console.error('Failed to load templates:', err)
+        setTemplates([])
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [])
 
   const categories = ['All', ...Array.from(new Set(templates.map(t => t.category))).sort()]
