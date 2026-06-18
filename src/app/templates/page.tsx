@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useCardDrop } from '@/hooks/useCardDrop'
 import Link from 'next/link'
 import type { Template } from '@/types'
 import NodeNetwork from '@/components/ui/NodeNetwork'
@@ -104,6 +105,7 @@ function TemplateCard({ template, onPurchase, index }: { template: Template; onP
   const [previewStatus, setPreviewStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
   const [hovered, setHovered] = useState(false)
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const { ref: dropRef, dropped } = useCardDrop(1)
 
   useEffect(() => {
     if (!template.preview_url) {
@@ -133,7 +135,8 @@ function TemplateCard({ template, onPurchase, index }: { template: Template; onP
 
   return (
     <div
-      className={`card-drop card-electric drop-delay-${index % 6} bg-dark-100 border rounded-xl overflow-hidden transition-all duration-300 flex flex-col ${hovered ? 'border-neon/25' : 'border-dark-300'}`}
+      ref={dropRef}
+      className={`card-drop card-electric drop-delay-${index % 6} bg-dark-100 border rounded-xl overflow-hidden transition-all duration-300 flex flex-col ${dropped ? 'dropped' : ''} ${hovered ? 'border-neon/25' : 'border-dark-300'}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
