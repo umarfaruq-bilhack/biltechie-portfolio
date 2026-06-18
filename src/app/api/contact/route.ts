@@ -104,7 +104,7 @@ export async function POST(req: Request) {
                 <!-- Footer -->
                 <div style="padding: 16px 32px; border-top: 1px solid #1a1a1a; background: #0a0a0a;">
                   <div style="color: rgba(255,255,255,0.2); font-size: 11px;">
-                    Sent via <a href="https://biltechie.com" style="color: rgba(0,255,136,0.5); text-decoration: none;">biltechie.com</a> contact form
+                    Sent via <a href="https://biltechie.xyz" style="color: rgba(0,255,136,0.5); text-decoration: none;">biltechie.xyz</a> contact form
                   </div>
                 </div>
 

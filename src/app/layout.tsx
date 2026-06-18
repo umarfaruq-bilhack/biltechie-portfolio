@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Biltechie — Web3 Developer & NFT Builder",
     description: "Smart contracts, generative NFT systems, full-stack dApps, and interactive Web3 experiences.",
-    url: "https://biltechie.com",
+    url: "https://www.biltechie.xyz",
     siteName: "Biltechie",
     type: "website",
   },
