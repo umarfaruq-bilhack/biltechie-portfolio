@@ -42,7 +42,7 @@ export async function POST(req: Request) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Biltechie Portfolio <onboarding@resend.dev>',
+            from: 'Biltechie Portfolio <notifications@biltechie.xyz>',
             to: notifyEmail,
             reply_to: email,
             subject: `New message from ${name}`,
