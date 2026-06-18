@@ -3,6 +3,54 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Template } from '@/types'
 
+function TeaserPreview({ url, category, index }: { url: string; category: string; index: number }) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
+  const [imgSrc, setImgSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const stagger = setTimeout(() => {
+      fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&waitFor=1000`, { signal: controller.signal })
+        .then(res => res.json())
+        .then(json => {
+          if (cancelled) return
+          const shot = json?.data?.screenshot?.url
+          if (shot) setImgSrc(shot)
+          else setStatus('failed')
+        })
+        .catch(() => { if (!cancelled) setStatus('failed') })
+        .finally(() => clearTimeout(timeout))
+    }, index * 350)
+
+    return () => { cancelled = true; controller.abort(); clearTimeout(timeout); clearTimeout(stagger) }
+  }, [url, index])
+
+  return (
+    <>
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-4 h-4 border border-neon/30 border-t-neon rounded-full animate-spin" />
+        </div>
+      )}
+      {status === 'failed' && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="font-mono text-xs text-neon/20 tracking-widest uppercase mb-1">{String(index + 1).padStart(2, '0')}</div>
+            <div className="font-mono text-sm text-white/15">{category}</div>
+          </div>
+        </div>
+      )}
+      {imgSrc && (
+        <img src={imgSrc} alt={category}
+          className={`w-full h-full object-cover object-top transition-opacity duration-500 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
+      )}
+    </>
+  )
+}
+
 export default function TemplatesTeaser() {
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,12 +96,18 @@ export default function TemplatesTeaser() {
             {templates.map((t, i) => (
               <Link href="/templates" key={t.id}
                 className="group bg-dark-100 border border-dark-300 hover:border-neon/20 rounded-xl overflow-hidden transition-all duration-300">
-                <div className="h-36 bg-dark-200 border-b border-dark-300 relative flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="font-mono text-xs text-neon/20 tracking-widest uppercase mb-1">{String(i+1).padStart(2,'0')}</div>
-                    <div className="font-mono text-sm text-white/15">{t.category}</div>
-                  </div>
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                <div className="h-36 bg-dark-200 border-b border-dark-300 relative overflow-hidden">
+                  {t.preview_url ? (
+                    <TeaserPreview url={t.preview_url} category={t.category} index={i} />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="font-mono text-xs text-neon/20 tracking-widest uppercase mb-1">{String(i+1).padStart(2,'0')}</div>
+                        <div className="font-mono text-sm text-white/15">{t.category}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                     <span className="font-mono text-xs text-neon/50 bg-dark/70 border border-dark-400 px-2 py-0.5 rounded">{t.category}</span>
                     {t.badge && (
                       <span className={`font-mono text-xs px-2 py-0.5 rounded ${
